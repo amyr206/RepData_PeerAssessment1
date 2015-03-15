@@ -21,7 +21,8 @@ The code below assumes that the repo has been forked and cloned to a local machi
 Dplyr, lubridate, stringr, and lattice libraries are used to process and present the data. If you don't already have these libraries installed, use `install.libraries("librarynamegoeshere")`.
 
 Load the necessary libraries:
-``` {r message =FALSE}
+
+```r
 library("dplyr")
 library("lubridate") 
 library("stringr")
@@ -29,7 +30,8 @@ library("lattice")
 ```
 
 Read in the data:
-``` {r}
+
+```r
 rawdata <- read.table(unz("activity.zip", "activity.csv"), 
                       header = TRUE, 
                       sep = ",", 
@@ -45,7 +47,8 @@ To explore this question, the step data is summed by day, a histogram of the dai
 
 **1. A data tbl capturing the sum of steps for each day is created.**  
 The assignment instructions indicate that missing data should be ignored, so NAs are filtered out.
-``` {r}
+
+```r
 sumdailysteps <- tbl_df(rawdata) %>% 
         filter(!is.na(steps)) %>%
         group_by(date) %>%
@@ -53,7 +56,8 @@ sumdailysteps <- tbl_df(rawdata) %>%
 ```
 
 **2. A histogram of the total daily steps is produced:**
-``` {r}
+
+```r
 hist(x = sumdailysteps$sumsteps,
      breaks = 10,
      main = "Histogram of total daily steps",
@@ -61,10 +65,24 @@ hist(x = sumdailysteps$sumsteps,
      col = "deepskyblue")   
 ```
 
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png) 
+
 **3. The mean and median are calculated:**
-``` {r}
+
+```r
 mean(sumdailysteps$sumsteps)
+```
+
+```
+## [1] 10766.19
+```
+
+```r
 median(sumdailysteps$sumsteps)
+```
+
+```
+## [1] 10765
 ```
   
   
@@ -77,7 +95,8 @@ To answer this question, steps are averaged by 5-minute intervals across days, a
 NAs are filtered out.  
 The intervals required some additional processing so they'd be accurately represented in the plot. If the data was left as found and grouped on the interval column, R would perceive an incorrect gap between 55 and 100 - it would interpret the difference between those intervals as 45 instead of 5. Converting the intervals to a POSIXct date/time class didn't quite work either - a way to group on only the hour/minute interval across days without changing the class wasn't obvious. To accurately represent the intervals as times (instead of integers), and to allow averaging steps during intervals across different days, a column is added in which the date of all the entries is set to today and the hours/minutes are set based on the intervals.
 [There was a very super involved discussion of this in the forums](https://class.coursera.org/repdata-012/forum/thread?thread_id=36).  
-``` {r}
+
+```r
 avgsteps <- tbl_df(rawdata) %>%
         filter(!is.na(steps)) %>%        
         mutate(intervalstoplot = ymd_hms(paste(today(), str_pad(interval, 4, pad = 0), "00"))) %>% 
@@ -86,7 +105,8 @@ avgsteps <- tbl_df(rawdata) %>%
 ```
 
 **1. A time series plot of the average steps for each interval is created:**
-``` {r}
+
+```r
         plot(x = avgsteps$intervalstoplot, y = avgsteps$meansteps,
         type = "l",
         main = "Average Daily Activity Pattern",
@@ -96,10 +116,20 @@ avgsteps <- tbl_df(rawdata) %>%
         col = "deepskyblue")
 ```
 
+![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7-1.png) 
+
 **2. The 5-minute interval with the maximum average steps is determined:**
-```{r}
+
+```r
 avgsteps[which.max(avgsteps$meansteps), 2:3]
-```  
+```
+
+```
+## Source: local data frame [1 x 2]
+## 
+##   interval meansteps
+## 1      835  206.1698
+```
 The interval with the maximum number of average steps starts at 8:35am.
   
    
@@ -108,8 +138,17 @@ The interval with the maximum number of average steps starts at 8:35am.
 In this section, the number of missing step measurements is identified, a strategy for filling them in is determined, a dataset with the imputed values is created, the analysis from the *What is mean total number of steps taken per day?* section is recreated with the imputed values, and results compared.
 
 **1. The number of missing values in the original data is found:**
-```{r}
+
+```r
 count(rawdata, is.na(steps))
+```
+
+```
+## Source: local data frame [2 x 2]
+## 
+##   is.na(steps)     n
+## 1        FALSE 15264
+## 2         TRUE  2304
 ```
   
 There are 2304 intervals missing a step count.  
@@ -119,7 +158,8 @@ This investigator is without any statistics experience and not yet an R genius, 
 
 **3. A new dataset with imputed values in place of the missing ones is created: **  
 Records for which a step count is missing are filled in with the average step count for the interval, merged with the complete cases, and grouped and summed as before.
-``` {r}
+
+```r
 # Filter for NAs and impute the missing values
 dailystepsimputed <- tbl_df(rawdata) %>% 
         filter(is.na(steps)) %>%
@@ -139,17 +179,32 @@ sumalldailysteps <- dailystepsimputed %>%
 ```
 
 **4. A histogram of total daily steps is plotted, the mean and median are calculated, and results are compared with the earlier analysis to see if imputation made a difference.**
-``` {r}
+
+```r
 hist(x = sumalldailysteps$sumsteps,
      breaks = 10,
      main = "Histogram of total daily steps (NAs imputed)",
      xlab = "Total daily steps",
      col = "deepskyblue4")   
 ```
+
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-1.png) 
   
-``` {r}
+
+```r
 mean(sumalldailysteps$sumsteps)
+```
+
+```
+## [1] 10766.19
+```
+
+```r
 median(sumalldailysteps$sumsteps)
+```
+
+```
+## [1] 10766.19
 ```
   
 Unsurprisingly, filling in averages for missing data kept the mean the same and pushed the median up slightly to equal the mean. The frequency of intervals that fall into the middle bin in the histogram increased.
@@ -161,7 +216,8 @@ To address this question, a weekday/weekend factor is added to the data (includi
 
 **1. Create the weekday/weekend factor**  
 The imputed and complete cases are combined, and the weekday/weekend factor is added (I used lubridate's wday() function instead of the weekdays() function because I thought our classmate had a good point in [this thread](https://class.coursera.org/repdata-012/forum/thread?thread_id=67). Then, the intervals are processed as they were in the *What is the average daily activity pattern?* section above.  
-``` {r}
+
+```r
 avgalldailysteps <- dailystepsimputed %>%
         bind_rows(dailystepscompletecases) %>%
         mutate(daytype = ifelse(wday(date) >= 2 & wday(date) <= 6, "weekday", "weekend")) %>%
@@ -171,7 +227,8 @@ avgalldailysteps <- dailystepsimputed %>%
 ```
 
 **2. A panel of time series plots of the average steps for each interval on weekdays and weekends is created:**  
-``` {r}
+
+```r
 xyplot(avgsteps ~ intervalstoplot | daytype,
        data = avgalldailysteps,
        type = "l",
@@ -181,3 +238,5 @@ xyplot(avgsteps ~ intervalstoplot | daytype,
        ylab = "Average steps",
        scales = list(relation = "free", format = "%H:%M"))
 ```
+
+![plot of chunk unnamed-chunk-14](figure/unnamed-chunk-14-1.png) 
