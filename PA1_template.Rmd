@@ -75,8 +75,7 @@ To answer this question, steps are averaged by 5-minute intervals across days, a
 
 **A data tbl capturing the average of steps for each interval across days is created:**  
 NAs are filtered out.  
-The intervals required some additional processing so they'd be accurately represented in the plot. If the data was left as found and grouped on the interval column, R would perceive an incorrect gap between 55 and 100 - it would interpret the difference between those intervals as 45 instead of 5. Converting the intervals to a POSIXct date/time class didn't quite work either - a way to group on only the hour/minute interval across days without changing the class wasn't obvious. To accurately represent the intervals as times (instead of integers), and to allow averaging steps during intervals across different days, a column is added in which the date of all the entries is set to today and the hours/minutes are set based on the intervals.
-[There was a very super involved discussion of this in the forums](https://class.coursera.org/repdata-012/forum/thread?thread_id=36).  
+The intervals required some additional processing so they'd be accurately represented in the plot. If the data was left as found and grouped on the interval column, R would perceive an incorrect gap between 55 and 100 - it would interpret the difference between those intervals as 45 instead of 5. Converting the intervals to a POSIXct date/time class didn't quite work either - a way to group on only the hour/minute interval across days without changing the class wasn't obvious. To accurately represent the intervals as times (instead of integers), and to allow averaging steps during intervals across different days, a column is added in which the date of all the entries is set to today and the hours/minutes are set based on the intervals.  
 ``` {r}
 avgsteps <- tbl_df(rawdata) %>%
         filter(!is.na(steps)) %>%        
@@ -90,7 +89,7 @@ avgsteps <- tbl_df(rawdata) %>%
         plot(x = avgsteps$intervalstoplot, y = avgsteps$meansteps,
         type = "l",
         main = "Average Daily Activity Pattern",
-        xlab = "Time (in 5-minute intervals)",
+        xlab = "Time (5-minute intervals)",
         ylab = "Average steps",
         lwd = 2,
         col = "deepskyblue")
@@ -117,7 +116,7 @@ There are 2304 intervals missing a step count.
 **2. The imputation strategy is explained:**  
 This investigator is without any statistics experience and not yet an R genius, so many strategies were explored and discarded. For instance, [a thread on Stack Overflow](http://stackoverflow.com/questions/22693173/imputing-missing-values-linearly-in-r) had me way excited about `approxfun()`. Alas, I couldn't get it to work. Therefore, one of the strategies suggested in the instructions is used - missing step values are filled in with the interval's mean steps across all days, as determined in the *What is the average daily activity pattern?* section.
 
-**3. A new dataset with imputed values in place of the missing ones is created: **  
+**3. A new dataset with imputed values in place of the missing ones is created:**  
 Records for which a step count is missing are filled in with the average step count for the interval, merged with the complete cases, and grouped and summed as before.
 ``` {r}
 # Filter for NAs and impute the missing values
@@ -160,7 +159,7 @@ Unsurprisingly, filling in averages for missing data kept the mean the same and 
 To address this question, a weekday/weekend factor is added to the data (including imputed and complete cases) and a trellis line plot is generated for comparison.  
 
 **1. Create the weekday/weekend factor**  
-The imputed and complete cases are combined, and the weekday/weekend factor is added (I used lubridate's wday() function instead of the weekdays() function because I thought our classmate had a good point in [this thread](https://class.coursera.org/repdata-012/forum/thread?thread_id=67). Then, the intervals are processed as they were in the *What is the average daily activity pattern?* section above.  
+The imputed and complete cases are combined, and the weekday/weekend factor is added (I used lubridate's wday() function instead of the weekdays() function because a former classmate mentioned it might work better for computers not using English as the default language. Then, the intervals are processed as they were in the *What is the average daily activity pattern?* section above.  
 ``` {r}
 avgalldailysteps <- dailystepsimputed %>%
         bind_rows(dailystepscompletecases) %>%
@@ -172,12 +171,18 @@ avgalldailysteps <- dailystepsimputed %>%
 
 **2. A panel of time series plots of the average steps for each interval on weekdays and weekends is created:**  
 ``` {r}
+trellis.par.set(plot.linecol = "deepskyblue4")
 xyplot(avgsteps ~ intervalstoplot | daytype,
        data = avgalldailysteps,
        type = "l",
        layout = c(1,2),
        main = "Weekend and weekday activity levels",
-       xlab = "Intervals",
+       xlab = "Time (5-minute intervals)",
        ylab = "Average steps",
-       scales = list(relation = "free", format = "%H:%M"))
-```
+       ylim = c(-1, 250),
+       scales = list(relation = "free", 
+                     format = "%H:%M"
+                     ))
+```  
+  
+There are differences between weekend and weekday activity levels. While the most average steps are taken during weekday mornings, activity levels in general are higher throughout the day on the weekends.
